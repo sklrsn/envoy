@@ -47,6 +47,15 @@ public:
   virtual bool shouldEncryptUpstream() const PURE;
   virtual void sendUpstream(Buffer::Instance&) PURE;
   virtual void encryptUpstream(bool, Buffer::Instance&) PURE;
+
+  virtual std::string getDatabaseName() PURE;
+  virtual std::string getDatabaseUser() PURE;
+  virtual std::string getDatabasePassword() PURE;
+
+  virtual bool onStartupRequest(Buffer::Instance&) PURE;
+  virtual bool onClearTextPasswordRequest() PURE;
+  virtual bool onAuthenticationMD5Password() PURE;
+  virtual bool onAuthenticationKerberosV5() PURE;
 };
 
 // Postgres message decoder.
@@ -96,7 +105,8 @@ public:
     InSyncState,
     OutOfSyncState,
     EncryptedState,
-    NegotiatingUpstreamSSL
+    NegotiatingUpstreamSSL,
+    AuthenticateUpstream
   };
   State state() const { return state_; }
   void state(State state) { state_ = state; }
@@ -108,6 +118,7 @@ protected:
   Result onDataInSync(Buffer::Instance& data, bool frontend);
   Result onDataIgnore(Buffer::Instance& data, bool frontend);
   Result onDataInNegotiating(Buffer::Instance& data, bool frontend);
+  Result onDataInAuthentication(Buffer::Instance& data, bool frontend);
 
   // MsgAction defines the Decoder's method which will be invoked
   // when a specific message has been decoded.
@@ -162,6 +173,7 @@ protected:
   void onQuery();
   void onParse();
   void onStartup();
+  void onPasswordMessage();
 
   void incMessagesUnknown() { callbacks_->incMessagesUnknown(); }
   void incSessionsEncrypted() { callbacks_->incSessionsEncrypted(); }

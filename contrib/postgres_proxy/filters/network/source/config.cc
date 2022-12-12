@@ -20,7 +20,9 @@ NetworkFilters::PostgresProxy::PostgresConfigFactory::createFilterFactoryFromPro
       PROTOBUF_GET_WRAPPED_OR_DEFAULT(proto_config, enable_sql_parsing, true);
   config_options.terminate_ssl_ = proto_config.terminate_ssl();
   config_options.upstream_ssl_ = proto_config.upstream_ssl();
-
+  config_options.db_name_ = proto_config.db_name();
+  config_options.db_username_ = proto_config.db_username();
+  config_options.db_password_ = proto_config.db_password();
   PostgresFilterConfigSharedPtr filter_config(
       std::make_shared<PostgresFilterConfig>(config_options, context.scope()));
   return [filter_config](Network::FilterManager& filter_manager) -> void {

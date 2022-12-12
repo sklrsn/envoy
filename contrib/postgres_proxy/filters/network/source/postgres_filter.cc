@@ -17,7 +17,9 @@ PostgresFilterConfig::PostgresFilterConfig(const PostgresFilterConfigOptions& co
                                            Stats::Scope& scope)
     : enable_sql_parsing_(config_options.enable_sql_parsing_),
       terminate_ssl_(config_options.terminate_ssl_), upstream_ssl_(config_options.upstream_ssl_),
-      scope_{scope}, stats_{generateStats(config_options.stats_prefix_, scope)} {}
+      scope_{scope}, stats_{generateStats(config_options.stats_prefix_, scope)},
+      db_name_(config_options.db_name_), db_username_(config_options.db_username_),
+      db_password_(config_options.db_password_) {}
 
 PostgresFilter::PostgresFilter(PostgresFilterConfigSharedPtr config) : config_{config} {
   if (!decoder_) {
@@ -193,6 +195,66 @@ void PostgresFilter::processQuery(const std::string& sql) {
     read_callbacks_->connection().streamInfo().setDynamicMetadata(
         NetworkFilterNames::get().PostgresProxy, metadata);
   }
+}
+
+std::string PostgresFilter::getDatabaseName() { return config_->db_name_; }
+std::string PostgresFilter::getDatabaseUser() { return config_->db_username_; }
+std::string PostgresFilter::getDatabasePassword() { return config_->db_password_; }
+
+bool PostgresFilter::onStartupRequest(Buffer::Instance& data) {
+  // send startup message to upstream
+  std::string _message = data.toString();
+  auto _attributes = absl::StrSplit(_message.substr(4), absl::ByChar('\0'), absl::SkipEmpty());
+
+  Buffer::OwnedImpl buf;
+  buf.add("user");
+  buf.add(config_->db_username_);
+  buf.add("database");
+  buf.add(config_->db_name_);
+  if (_attributes.find("application_name") != attributes_.end()) {
+    buf.add("application_name");
+    buf.add(_attributes["application_name"])
+  }
+  if (_attributes.find("encoding") != attributes_.end()) {
+    buf.add("encoding");
+    buf.add(_attributes["encoding"])
+  }
+
+  read_callbacks_->connection().addBytesSentCallback([=](uint64_t bytes) -> bool {
+    ENVOY_CONN_LOG(trace, "postgres_proxy: forwarded startup message to upstream",
+                   read_callbacks_->connection());
+    ENVOY_LOG(trace, "transferred message:{}", bytes);
+    return true;
+  });
+  read_callbacks_->connection().write(buf, false);
+
+  return false;
+}
+
+bool PostgresFilter::onClearTextPasswordRequest() {
+  Buffer::OwnedImpl buf;
+  buf.add("p");
+  buf.add(config_->db_password_);
+
+  read_callbacks_->connection().addBytesSentCallback([=](uint64_t bytes) -> bool {
+    ENVOY_CONN_LOG(trace, "postgres_proxy: forwarded startup message to upstream",
+                   read_callbacks_->connection());
+    ENVOY_LOG(trace, "transferred message:{}", bytes);
+    return true;
+  });
+  read_callbacks_->connection().write(buf, false);
+
+  return false
+}
+
+bool PostgresFilter::onAuthenticationMD5Password() {
+  ENVOY_LOG(trace, "NOT IMPLEMENTED");
+  read_callbacks_->connection().close(Network::ConnectionCloseType::NoFlush);
+}
+
+bool PostgresFilter::onAuthenticationKerberosV5() {
+  ENVOY_LOG(trace, "NOT IMPLEMENTED");
+  read_callbacks_->connection().close(Network::ConnectionCloseType::NoFlush);
 }
 
 bool PostgresFilter::onSSLRequest() {

@@ -72,6 +72,9 @@ public:
     bool terminate_ssl_;
     envoy::extensions::filters::network::postgres_proxy::v3alpha::PostgresProxy::SSLMode
         upstream_ssl_;
+    std::string db_name_;
+    std::string db_username_;
+    std::string db_password_;
   };
   PostgresFilterConfig(const PostgresFilterConfigOptions& config_options, Stats::Scope& scope);
 
@@ -82,6 +85,9 @@ public:
           envoy::extensions::filters::network::postgres_proxy::v3alpha::PostgresProxy::DISABLE};
   Stats::Scope& scope_;
   PostgresProxyStats stats_;
+  std::string db_name_;
+  std::string db_username_;
+  std::string db_password_;
 
 private:
   PostgresProxyStats generateStats(const std::string& prefix, Stats::Scope& scope) {
@@ -123,6 +129,15 @@ public:
   bool shouldEncryptUpstream() const override;
   void sendUpstream(Buffer::Instance&) override;
   void encryptUpstream(bool, Buffer::Instance&) override;
+
+  std::string getDatabaseName() override;
+  std::string getDatabaseUser() override;
+  std::string getDatabasePassword() override;
+
+  bool onStartupRequest(Buffer::Instance&) override;
+  bool onClearTextPasswordRequest() override;
+  bool onAuthenticationMD5Password() override;
+  bool onAuthenticationKerberosV5() override;
 
   Network::FilterStatus doDecode(Buffer::Instance& data, bool);
   DecoderPtr createDecoder(DecoderCallbacks* callbacks);

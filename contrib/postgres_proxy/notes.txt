@@ -1,0 +1,9 @@
+
+Build envoy binary with contrib
+
+root@ip-172-31-43-108:/home/ubuntu/envoy# pwd
+/home/ubuntu/envoy
+
+./ci/run_envoy_docker.sh './ci/do_ci.sh bazel.dev.contrib'
+
+docker build -f ci/Dockerfile-envoy -t envoy-custom-image .

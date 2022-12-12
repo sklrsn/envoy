@@ -57,4 +57,9 @@ message PostgresProxy {
   // SSL connection to Envoy and Postgres filter is configured to terminate SSL.
   // Defaults to SSL_DISABLE.
   SSLMode upstream_ssl = 4;
+
+  // Postgres DB info
+  string db_name = 5;
+  string db_username = 6;
+  string db_password = 7;
 }

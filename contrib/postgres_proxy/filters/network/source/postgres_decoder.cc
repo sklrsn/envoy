@@ -42,7 +42,7 @@ void DecoderImpl::initialize() {
   FE_known_msgs['p'] =
       MessageProcessor{"PasswordMessage/GSSResponse/SASLInitialResponse/SASLResponse",
                        BODY_FORMAT(Int32, ByteN),
-                       {}};
+                       {&DecoderImpl::onPasswordMessage}};
   FE_known_msgs['P'] =
       MessageProcessor{"Parse", BODY_FORMAT(String, String, Array<Int32>), {&DecoderImpl::onParse}};
   FE_known_msgs['Q'] = MessageProcessor{"Query", BODY_FORMAT(String), {&DecoderImpl::onQuery}};
@@ -193,6 +193,8 @@ Decoder::Result DecoderImpl::onData(Buffer::Instance& data, bool frontend) {
     return onDataInSync(data, frontend);
   case State::NegotiatingUpstreamSSL:
     return onDataInNegotiating(data, frontend);
+  case State::AuthenticateUpstream:
+    return onDataInAuthentication(data, frontend);
   default:
     PANIC("not implemented");
   }
@@ -282,6 +284,19 @@ Decoder::Result DecoderImpl::onDataInit(Buffer::Instance& data, bool) {
       callbacks_->sendUpstream(ssl_request);
       result = Decoder::Result::Stopped;
       state_ = State::NegotiatingUpstreamSSL;
+    } else {
+      state_ = State::InSyncState;
+    }
+  }
+
+  // Handler for StartupMessage (Int32(196608)) = 0x00030000)
+  // See details in https://www.postgresql.org/docs/current/protocol-message-formats.html.
+  if (code == 0x00030000) {
+    bool sent_ callbacks_->onStartupRequest(data);
+    if (sent_) {
+      ENVOY_LOG(trace, "postgres_proxy: forwarded customized startup request.");
+      result = Decoder::Result::Stopped;
+      state_ = State::AuthenticateUpstream;
     } else {
       state_ = State::InSyncState;
     }
@@ -429,6 +444,28 @@ void DecoderImpl::decodeBackendStatements() {
   }
 }
 
+Decoder::Result DecoderImpl::onDataInAuthentication(Buffer::Instance& data, bool frontend) {
+  // Drop any packets sent from UI while postgres proxy authenticate with the upstream.
+  if (frontend) {
+    data.drain(data.length());
+    state_ = State::OutOfSyncState;
+    return Decoder::Result::ReadyForNext;
+  }
+
+  const char c = data.peekInt<char, ByteOrder::Host, 1>(0);
+  if (c == 'R') {
+    // TODO: Handle only clearText passwords (draft)
+    bool status_ = callbacks_->onClearTextPasswordRequest();
+    if (status_) {
+      ENVOY_LOG(trace, "postgres_proxy: Authentication failed");
+    }
+  }
+
+  data.drain(data.length());
+
+  return Decoder::Result::Stopped;
+}
+
 Decoder::Result DecoderImpl::onDataInNegotiating(Buffer::Instance& data, bool frontend) {
   if (frontend) {
     // No data from downstream is allowed when negotiating upstream SSL
@@ -546,20 +583,19 @@ void DecoderImpl::onQuery() { callbacks_->processQuery(message_); }
 // The message format is continuous string of the following format:
 // user<username>database<database-name>application_name<application>encoding<encoding-type>
 void DecoderImpl::onStartup() {
-  // First 4 bytes of startup message contains version code.
-  // It is skipped. After that message contains attributes.
-  attributes_ = absl::StrSplit(message_.substr(4), absl::ByChar('\0'), absl::SkipEmpty());
+  ENVOY_LOG(debug, "postgres_proxy: On startup message =>:{}", message_);
+}
 
-  // If "database" attribute is not found, default it to "user" attribute.
-  if ((attributes_.find("database") == attributes_.end()) &&
-      (attributes_.find("user") != attributes_.end())) {
-    attributes_["database"] = attributes_["user"];
-  }
+void DecoderImpl::onPasswordMessage() {
+  ENVOY_LOG(trace, "postgres_proxy: On password message =>:{}", message_);
 }
 
 // Method generates displayable format of currently processed message.
 const std::string DecoderImpl::genDebugMessage(const std::unique_ptr<Message>& parser,
                                                Buffer::Instance& data, uint32_t message_len) {
+
+  ENVOY_LOG(debug, "full message as string: =>:{}", data.toString());
+
   parser->read(data, message_len);
   return parser->toString();
 }
