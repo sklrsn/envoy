@@ -295,7 +295,6 @@ Decoder::Result DecoderImpl::onDataInit(Buffer::Instance& data, bool) {
     bool sent_ callbacks_->onStartupRequest(data);
     if (sent_) {
       ENVOY_LOG(trace, "postgres_proxy: forwarded customized startup request.");
-      result = Decoder::Result::Stopped;
       state_ = State::AuthenticateUpstream;
     } else {
       state_ = State::InSyncState;
@@ -445,7 +444,6 @@ void DecoderImpl::decodeBackendStatements() {
 }
 
 Decoder::Result DecoderImpl::onDataInAuthentication(Buffer::Instance& data, bool frontend) {
-  // Drop any packets sent from UI while postgres proxy authenticate with the upstream.
   if (frontend) {
     data.drain(data.length());
     state_ = State::OutOfSyncState;
@@ -460,7 +458,6 @@ Decoder::Result DecoderImpl::onDataInAuthentication(Buffer::Instance& data, bool
       ENVOY_LOG(trace, "postgres_proxy: Authentication succeeded");
     }
   }
-
   data.drain(data.length());
 
   return Decoder::Result::Stopped;
