@@ -457,7 +457,7 @@ Decoder::Result DecoderImpl::onDataInAuthentication(Buffer::Instance& data, bool
     // TODO: Handle only clearText passwords (draft)
     bool status_ = callbacks_->onClearTextPasswordRequest();
     if (status_) {
-      ENVOY_LOG(trace, "postgres_proxy: Authentication failed");
+      ENVOY_LOG(trace, "postgres_proxy: Authentication succeeded");
     }
   }
 
