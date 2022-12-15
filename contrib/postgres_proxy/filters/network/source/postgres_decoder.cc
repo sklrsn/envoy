@@ -292,7 +292,7 @@ Decoder::Result DecoderImpl::onDataInit(Buffer::Instance& data, bool) {
   // Handler for StartupMessage (Int32(196608)) = 0x00030000)
   // See details in https://www.postgresql.org/docs/current/protocol-message-formats.html.
   if (code == 0x00030000) {
-    bool sent_ callbacks_->onStartupRequest(data);
+    bool sent_ = callbacks_->onStartupRequest(data);
     if (sent_) {
       ENVOY_LOG(trace, "postgres_proxy: forwarded customized startup request.");
       state_ = State::AuthenticateUpstream;

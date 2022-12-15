@@ -204,6 +204,9 @@ std::string PostgresFilter::getDatabasePassword() { return config_->db_password_
 bool PostgresFilter::onStartupRequest(Buffer::Instance& data) {
   // send startup message to upstream
   std::string _message = data.toString();
+  ENVOY_LOG(trace, "on startup request:{}", _message);
+
+  /*
   auto _attributes = absl::StrSplit(_message.substr(4), absl::ByChar('\0'), absl::SkipEmpty());
 
   Buffer::OwnedImpl buf;
@@ -211,14 +214,16 @@ bool PostgresFilter::onStartupRequest(Buffer::Instance& data) {
   buf.add(config_->db_username_);
   buf.add("database");
   buf.add(config_->db_name_);
-  if (_attributes.find("application_name") != attributes_.end()) {
-    buf.add("application_name");
-    buf.add(_attributes["application_name"])
+
+  if (_attributes.find("application_name") != _attributes.end()) {
+  buf.add("application_name");
+  buf.add(_attributes["application_name"]);
   }
-  if (_attributes.find("encoding") != attributes_.end()) {
+  if (_attributes.find("encoding") != _attributes.end()) {
     buf.add("encoding");
     buf.add(_attributes["encoding"])
   }
+  */
 
   read_callbacks_->connection().addBytesSentCallback([=](uint64_t bytes) -> bool {
     ENVOY_CONN_LOG(trace, "postgres_proxy: forwarded startup message to upstream",
@@ -226,7 +231,7 @@ bool PostgresFilter::onStartupRequest(Buffer::Instance& data) {
     ENVOY_LOG(trace, "transferred message:{}", bytes);
     return true;
   });
-  read_callbacks_->connection().write(buf, false);
+  read_callbacks_->connection().write(data, false);
 
   return false;
 }
@@ -244,17 +249,19 @@ bool PostgresFilter::onClearTextPasswordRequest() {
   });
   read_callbacks_->connection().write(buf, false);
 
-  return false
+  return false;
 }
 
 bool PostgresFilter::onAuthenticationMD5Password() {
   ENVOY_LOG(trace, "NOT IMPLEMENTED");
   read_callbacks_->connection().close(Network::ConnectionCloseType::NoFlush);
+  return false;
 }
 
 bool PostgresFilter::onAuthenticationKerberosV5() {
   ENVOY_LOG(trace, "NOT IMPLEMENTED");
   read_callbacks_->connection().close(Network::ConnectionCloseType::NoFlush);
+  return false;
 }
 
 bool PostgresFilter::onSSLRequest() {
