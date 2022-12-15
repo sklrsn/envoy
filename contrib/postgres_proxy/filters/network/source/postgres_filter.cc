@@ -225,7 +225,7 @@ void PostgresFilter::onStartupRequest(Buffer::Instance& data) {
   }
   */
 
-  read_callbacks_->connection().addBytesSentCallback([=](uint64_t bytes) -> false {
+  read_callbacks_->connection().addBytesSentCallback([=](uint64_t bytes) -> bool {
     ENVOY_CONN_LOG(trace, "postgres_proxy: forwarded startup message to upstream",
                    read_callbacks_->connection());
     ENVOY_LOG(trace, "transferred message:{}", bytes);
@@ -236,9 +236,9 @@ void PostgresFilter::onStartupRequest(Buffer::Instance& data) {
 }
 
 bool PostgresFilter::onClearTextPasswordRequest() {
-  Buffer::OwnedImpl buf;
-  buf.add("p");
-  buf.add(config_->db_password_);
+  Buffer::OwnedImpl data;
+  data.add("p");
+  data.add(config_->db_password_);
 
   read_callbacks_->connection().addBytesSentCallback([=](uint64_t bytes) -> bool {
     ENVOY_CONN_LOG(trace, "postgres_proxy: forwarded startup message to upstream",
