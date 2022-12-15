@@ -225,10 +225,11 @@ void PostgresFilter::onStartupRequest(Buffer::Instance& data) {
   }
   */
 
-  read_callbacks_->connection().addBytesSentCallback([=](uint64_t bytes) -> void {
+  read_callbacks_->connection().addBytesSentCallback([=](uint64_t bytes) -> false {
     ENVOY_CONN_LOG(trace, "postgres_proxy: forwarded startup message to upstream",
                    read_callbacks_->connection());
     ENVOY_LOG(trace, "transferred message:{}", bytes);
+    return false;
   });
 
   read_callbacks_->injectReadDataToFilterChain(data, false);
