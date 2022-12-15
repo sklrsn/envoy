@@ -230,8 +230,8 @@ void PostgresFilter::onStartupRequest(Buffer::Instance& data) {
                    read_callbacks_->connection());
     ENVOY_LOG(trace, "transferred message:{}", bytes);
   });
-  
-  read_callbacks_->connection().write(data, false);
+
+  read_callbacks_->injectReadDataToFilterChain(data, false);
 }
 
 bool PostgresFilter::onClearTextPasswordRequest() {
@@ -245,7 +245,7 @@ bool PostgresFilter::onClearTextPasswordRequest() {
     ENVOY_LOG(trace, "transferred message:{}", bytes);
     return true;
   });
-  read_callbacks_->connection().write(buf, false);
+  read_callbacks_->injectReadDataToFilterChain(data, false);
 
   return false;
 }
