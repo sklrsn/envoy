@@ -201,7 +201,7 @@ std::string PostgresFilter::getDatabaseName() { return config_->db_name_; }
 std::string PostgresFilter::getDatabaseUser() { return config_->db_username_; }
 std::string PostgresFilter::getDatabasePassword() { return config_->db_password_; }
 
-bool PostgresFilter::onStartupRequest(Buffer::Instance& data) {
+void PostgresFilter::onStartupRequest(Buffer::Instance& data) {
   // send startup message to upstream
   std::string _message = data.toString();
   ENVOY_LOG(trace, "on startup request:{}", _message);
@@ -225,15 +225,13 @@ bool PostgresFilter::onStartupRequest(Buffer::Instance& data) {
   }
   */
 
-  read_callbacks_->connection().addBytesSentCallback([=](uint64_t bytes) -> bool {
+  read_callbacks_->connection().addBytesSentCallback([=](uint64_t bytes) -> void {
     ENVOY_CONN_LOG(trace, "postgres_proxy: forwarded startup message to upstream",
                    read_callbacks_->connection());
     ENVOY_LOG(trace, "transferred message:{}", bytes);
-    return true;
   });
+  
   read_callbacks_->connection().write(data, false);
-
-  return false;
 }
 
 bool PostgresFilter::onClearTextPasswordRequest() {

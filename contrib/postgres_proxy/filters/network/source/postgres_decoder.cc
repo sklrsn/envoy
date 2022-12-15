@@ -284,22 +284,22 @@ Decoder::Result DecoderImpl::onDataInit(Buffer::Instance& data, bool) {
       callbacks_->sendUpstream(ssl_request);
       result = Decoder::Result::Stopped;
       state_ = State::NegotiatingUpstreamSSL;
-    } else {
-      state_ = State::InSyncState;
     }
   }
 
   // Handler for StartupMessage (Int32(196608)) = 0x00030000)
   // See details in https://www.postgresql.org/docs/current/protocol-message-formats.html.
   if (code == 0x00030000) {
-    bool sent_ = callbacks_->onStartupRequest(data);
-    if (sent_) {
-      ENVOY_LOG(trace, "postgres_proxy: forwarded customized startup request.");
-      state_ = State::AuthenticateUpstream;
-    } else {
-      state_ = State::InSyncState;
-    }
+    Buffer::OwnedImpl auth_storage_;
+    auth_storage_.add(data.linearize(data.length()), data.length());
+    callbacks_->onStartupRequest(auth_storage_);
+
+    result = Decoder::Result::Stopped;
+    state_ = State::AuthenticateUpstream;
+  } else {
+    state_ = State::InSyncState;
   }
+
   data.drain(4);
 
   processMessageBody(data, FRONTEND, message_len_ - 4, first_, msgParser);

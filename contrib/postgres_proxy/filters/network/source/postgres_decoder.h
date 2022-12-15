@@ -52,7 +52,7 @@ public:
   virtual std::string getDatabaseUser() PURE;
   virtual std::string getDatabasePassword() PURE;
 
-  virtual bool onStartupRequest(Buffer::Instance&) PURE;
+  virtual void onStartupRequest(Buffer::Instance&) PURE;
   virtual bool onClearTextPasswordRequest() PURE;
   virtual bool onAuthenticationMD5Password() PURE;
   virtual bool onAuthenticationKerberosV5() PURE;

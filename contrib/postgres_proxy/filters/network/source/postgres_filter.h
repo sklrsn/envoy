@@ -134,7 +134,7 @@ public:
   std::string getDatabaseUser() override;
   std::string getDatabasePassword() override;
 
-  bool onStartupRequest(Buffer::Instance&) override;
+  void onStartupRequest(Buffer::Instance&) override;
   bool onClearTextPasswordRequest() override;
   bool onAuthenticationMD5Password() override;
   bool onAuthenticationKerberosV5() override;
