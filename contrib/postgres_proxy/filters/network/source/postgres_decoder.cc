@@ -460,6 +460,7 @@ Decoder::Result DecoderImpl::onDataInAuthentication(Buffer::Instance& data, bool
     bool status_ = callbacks_->onClearTextPasswordRequest();
     if (status_) {
       ENVOY_LOG(trace, "postgres_proxy: Authentication succeeded");
+      state_ = State::InitState;
     }
   }
   data.drain(data.length());
