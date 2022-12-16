@@ -292,10 +292,14 @@ Decoder::Result DecoderImpl::onDataInit(Buffer::Instance& data, bool) {
   if (code == 0x00030000) {
     Buffer::OwnedImpl auth_storage_;
     auth_storage_.add(data.linearize(data.length()), data.length());
-    callbacks_->onStartupRequest(auth_storage_);
-
-    result = Decoder::Result::Stopped;
-    state_ = State::AuthenticateUpstream;
+    bool _sent_ = callbacks_->onStartupRequest(auth_storage_);
+    if (_sent) {
+      ENVOY_LOG(trace, "postgres_proxy: forwarded startup request to upstream");
+      result = Decoder::Result::Stopped;
+      state_ = State::AuthenticateUpstream;
+    } else {
+      ENVOY_LOG(trace, "postgres_proxy: failure to forward startup message to upstream");
+    }
   } else {
     state_ = State::InSyncState;
   }
