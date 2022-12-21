@@ -239,7 +239,10 @@ bool PostgresFilter::shouldEncryptUpstream() const {
           envoy::extensions::filters::network::postgres_proxy::v3alpha::PostgresProxy::REQUIRE);
 }
 
+bool PostgresFilter::shouldModifyStartupMessage() const { return true; }
+
 void PostgresFilter::sendUpstream(Buffer::Instance& data) {
+  ENVOY_LOG(trace, "===> postgres_proxy: send upstream data:{}", data.toString());
   read_callbacks_->injectReadDataToFilterChain(data, false);
 }
 

@@ -47,7 +47,6 @@ clang.bazelrc
 user.bazelrc
 CMakeLists.txt
 cmake-build-debug
-/linux
 bazel.output.txt
 *~
 **/.DS_Store

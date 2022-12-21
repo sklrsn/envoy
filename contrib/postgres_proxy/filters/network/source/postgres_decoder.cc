@@ -269,9 +269,43 @@ Decoder::Result DecoderImpl::onDataInit(Buffer::Instance& data, bool) {
     }
   } else {
     ENVOY_LOG(debug, "Detected version {}.{} of Postgres", code >> 16, code & 0x0000FFFF);
+    // Copy the received initial request.
+    temp_storage_.add(data.linearize(data.length()), data.length());
+
+    // Modify username, database, application_name, etc.
+    // TODO: replace only for code==0x00030000
+    if (callbacks_->shouldModifyStartupMessage()) {
+      ENVOY_LOG(trace, "===> postgres_proxy: modify postgres startup message");
+      ENVOY_LOG(trace, "===> postgres_proxy: data:{}", data.toString());
+
+      Buffer::OwnedImpl start_request;
+      start_request.writeBEInt<uint32_t>(63);         // 4 bytes
+      start_request.writeBEInt<uint32_t>(0x00030000); // 4 bytes
+
+      start_request.add("user");             // 4 bytes
+      start_request.writeBEInt<uint8_t>(0);  // 1 byte
+      start_request.add("postgres");         // 8 bytes
+      start_request.writeBEInt<uint8_t>(0);  // 1 byte
+      start_request.add("database");         // 8 bytes
+      start_request.writeBEInt<uint8_t>(0);  // 1 byte
+      start_request.add("postgres");         // 8 bytes
+      start_request.writeBEInt<uint8_t>(0);  // 1 byte
+      start_request.add("application_name"); // 16 byte
+      start_request.writeBEInt<uint8_t>(0);  // 1 byte
+      start_request.add("psql");             // 4 bytes
+      start_request.writeBEInt<uint8_t>(0);  // 1 byte
+      start_request.writeBEInt<uint8_t>(0);  // 1 byte
+
+      temp_storage_.drain(temp_storage_.length());
+      temp_storage_.add(start_request.linearize(start_request.length()), start_request.length());
+
+      ENVOY_LOG(trace, "===> postgres_proxy: modified:{}", temp_storage_.toString());
+      ENVOY_LOG(trace, "===> postgres_proxy: modified size:{}", temp_storage_.length());
+    }
+
+    // SSL + Modified startup message
     if (callbacks_->shouldEncryptUpstream()) {
-      // Copy the received initial request.
-      temp_storage_.add(data.linearize(data.length()), data.length());
+      ENVOY_LOG(trace, "===> postgres_proxy: with ssl temp_storage_:{}", temp_storage_.toString());
       // Send SSL request to upstream.
       Buffer::OwnedImpl ssl_request;
       uint32_t len = 8;
@@ -282,6 +316,14 @@ Decoder::Result DecoderImpl::onDataInit(Buffer::Instance& data, bool) {
       callbacks_->sendUpstream(ssl_request);
       result = Decoder::Result::Stopped;
       state_ = State::NegotiatingUpstreamSSL;
+    } else if (!callbacks_->shouldEncryptUpstream() && callbacks_->shouldModifyStartupMessage()) {
+      ENVOY_LOG(trace, "===> postgres_proxy: without ssl. temp_storage_:{}",
+                temp_storage_.toString());
+      callbacks_->sendUpstream(temp_storage_);
+      temp_storage_.drain(temp_storage_.length());
+      result = Decoder::Result::Stopped;
+      state_ = State::OutOfSyncState;
+      ENVOY_LOG(trace, "===> postgres_proxy: startup message processed");
     } else {
       state_ = State::InSyncState;
     }

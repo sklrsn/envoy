@@ -9,10 +9,10 @@ ARG TARGETPLATFORM
 ENV TARGETPLATFORM=${TARGETPLATFORM:-linux/amd64}
 ARG ENVOY_BINARY=envoy
 ARG ENVOY_BINARY_SUFFIX=_stripped
-ADD ${TARGETPLATFORM}/build_${ENVOY_BINARY}_release${ENVOY_BINARY_SUFFIX}/envoy* /usr/local/bin/
+ADD ${TARGETPLATFORM}/build_${ENVOY_BINARY}-contrib_fastbuild${ENVOY_BINARY_SUFFIX}/envoy* /usr/local/bin/
 ADD configs/envoyproxy_io_proxy.yaml /etc/envoy/envoy.yaml
-COPY --chown=0:0 ${TARGETPLATFORM}/build_${ENVOY_BINARY}_release/su-exec /usr/local/bin/
-COPY ${TARGETPLATFORM}/build_${ENVOY_BINARY}_release/schema_validator_tool /usr/local/bin/schema_validator_tool
+COPY --chown=0:0 ${TARGETPLATFORM}/build_${ENVOY_BINARY}-contrib_fastbuild/su-exec /usr/local/bin/
+COPY ${TARGETPLATFORM}/build_${ENVOY_BINARY}-contrib_fastbuild/schema_validator_tool /usr/local/bin/schema_validator_tool
 COPY ci/docker-entrypoint.sh /
 
 

@@ -124,6 +124,8 @@ public:
   void sendUpstream(Buffer::Instance&) override;
   void encryptUpstream(bool, Buffer::Instance&) override;
 
+  bool shouldModifyStartupMessage() const override;
+
   Network::FilterStatus doDecode(Buffer::Instance& data, bool);
   DecoderPtr createDecoder(DecoderCallbacks* callbacks);
   void setDecoder(std::unique_ptr<Decoder> decoder) { decoder_ = std::move(decoder); }
