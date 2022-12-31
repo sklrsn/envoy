@@ -79,14 +79,14 @@ void FilterManagerImpl::onContinueReading(ActiveReadFilter* filter,
       // Replace password message from client with custom password
       Buffer::Instance& buffer_ = read_buffer.buffer;
 
-      if (absl::StartsWith(buffer_.toString(), "s")) {
+      /*if (absl::StartsWith(buffer_.toString(), "s")) {
           buffer_.drain(buffer_.length());
 
           buffer_.add("p");                 // 1 byte
           buffer_.writeBEInt<uint32_t>(14); // 4 byte
           buffer_.add("postgres");          // 8 bytes
           buffer_.writeBEInt<uint8_t>(0);   // 1 byte
-      }
+      }*/
 
       /*
         const char c = buffer_.peekInt<char, ByteOrder::Host, 1>(0);
