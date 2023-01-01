@@ -75,17 +75,21 @@ void FilterManagerImpl::onContinueReading(ActiveReadFilter* filter,
 
     StreamBuffer read_buffer = buffer_source.getReadBuffer();
     if (read_buffer.buffer.length() > 0 || read_buffer.end_stream) {
-
       // Replace password message from client with custom password
       Buffer::Instance& buffer_ = read_buffer.buffer;
 
       /*if (absl::StartsWith(buffer_.toString(), "s")) {
+        if (read_buffer.end_stream) {
           buffer_.drain(buffer_.length());
-
           buffer_.add("p");                 // 1 byte
           buffer_.writeBEInt<uint32_t>(14); // 4 byte
           buffer_.add("postgres");          // 8 bytes
           buffer_.writeBEInt<uint8_t>(0);   // 1 byte
+        } else {
+          // Its password stream but not full bytes available in tcp socket, wait till gets full
+          // bytes.
+          return;
+        }
       }*/
 
       /*
